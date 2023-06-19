@@ -18,6 +18,9 @@ intents = discord.Intents.default()
 intents.message_content = True
 bot = commands.Bot(command_prefix='!', intents=intents)
 
+# Global variable to store upcoming launches
+upcoming_launches = []
+
 # Event triggered when the bot is ready and connected to Discord
 @bot.event
 async def on_ready():
@@ -27,16 +30,7 @@ async def on_ready():
 # Define the `next` command
 @bot.command(name='next')
 async def next_launch(ctx):
-    # Make a request to the API
-    response = requests.get('https://ll.thespacedevs.com/2.2.0/launch/upcoming/')
-
-    if response.status_code == 200:
-        data = response.json()
-        upcoming_launches = data['results']
-
-        # Filter out launches with past dates
-        upcoming_launches = [launch for launch in upcoming_launches if datetime.now(timezone.utc) < datetime.fromisoformat(launch['window_start'].replace("Z", "+00:00"))]
-
+    if upcoming_launches:
         # Get the next two launches
         next_launches = upcoming_launches[:2]
         message = "Next 2 launches:\n"
@@ -57,9 +51,8 @@ async def next_launch(ctx):
             message += f"Launch Provider: {provider}\nName: {name}\nWindow Start: {formatted_time}\n\n"
 
         await ctx.send(message)
-
     else:
-        await ctx.send("Failed to fetch upcoming launches")
+        await ctx.send("No upcoming launches stored.")
 
 async def schedule_next_launch():
     await bot.wait_until_ready()
@@ -77,6 +70,7 @@ def get_next_launch_time():
 
     if response.status_code == 200:
         data = response.json()
+        global upcoming_launches
         upcoming_launches = data['results']
 
         # Filter out launches with past dates
@@ -91,12 +85,16 @@ def get_next_launch_time():
     return None
 
 async def announce_next_launch():
-    for i in range(1, MAX_CHANNEL_IDS + 1):
-        channel_id = os.getenv(f'CHANNEL_ID_{i}')
-        if channel_id:
-            channel = bot.get_channel(int(channel_id))
-            if channel:
-                await channel.send("Next launch will start in 5 minutes!\nLaunch Provider: SpaceX\nLocation: Cape Canaveral, Florida")
+    if upcoming_launches:
+        for i in range(1, MAX_CHANNEL_IDS + 1):
+            channel_id = os.getenv(f'CHANNEL_ID_{i}')
+            if channel_id:
+                channel = bot.get_channel(int(channel_id))
+                if channel:
+                    next_launch = upcoming_launches[0]
+                    provider = next_launch['launch_service_provider']['name']
+                    location = next_launch['pad']['location']['name']
+                    await channel.send(f"Next launch will start in 5 minutes!\nLaunch Provider: {provider}\nLocation: {location}")
 
 # Run the bot
 bot.run(DISCORD_TOKEN)
