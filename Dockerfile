@@ -17,4 +17,4 @@ RUN pip install -r requirements.txt
 COPY . .
 
 # Run the SpaceBot script
-CMD ["python", "spaceBot.py"]
+CMD ["python", "main.py"]
