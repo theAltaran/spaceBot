@@ -22,8 +22,5 @@ COPY . .
 # Copy the .env file
 COPY .env /app/.env
 
-# Expose the port on which the Flask app will run
-EXPOSE 5000
-
 # Run the application
 CMD ["python", "main.py"]

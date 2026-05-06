@@ -284,7 +284,7 @@ async def bot_help_command(ctx):
 # ======================
 
 def run_flask():
-    app.run(debug=False, host='0.0.0.0', port=5000)
+    app.run(debug=False, host='127.0.0.1', port=5000)
 
 def run_discord():
     bot.run(DISCORD_TOKEN)
