@@ -4,3 +4,4 @@ python-dotenv
 flask
 pytz
 apscheduler
+beautifulsoup4

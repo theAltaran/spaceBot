@@ -111,6 +111,67 @@ scheduler.add_job(get_upcoming_launches, 'interval', minutes=30)
 def upcoming_launches_endpoint():
     return jsonify(get_upcoming_launches())
 
+@app.route('/apod', methods=['GET'])
+def apod_endpoint():
+    """Internal APOD endpoint - fetches directly from NASA's APOD website"""
+    from bs4 import BeautifulSoup
+    import re
+    
+    try:
+        # Fetch the APOD page directly
+        response = requests.get('https://apod.nasa.gov/apod/astropix.html')
+        if response.status_code != 200:
+            return jsonify({'error': 'Failed to fetch APOD'}), 500
+        
+        html = response.text
+        soup = BeautifulSoup(html, 'html.parser')
+        
+        # Get the image URL
+        img_tag = soup.find('img')
+        if img_tag:
+            image_url = 'https://apod.nasa.gov/apod/' + img_tag.get('src', '')
+        else:
+            # Maybe it's a video
+            video_tag = soup.find('iframe')
+            image_url = None
+        
+        # Get the explanation - it's in the <b> tag after the image
+        explanation = ""
+        b_tags = soup.find_all('b')
+        for b in b_tags:
+            if b.get_text().strip().startswith(' Explanation:'):
+                explanation = b.get_text().replace(' Explanation:', '').strip()
+                break
+        
+        # Get the title (date)
+        title = ""
+        center_tags = soup.find_all('center')
+        for c in center_tags:
+            h1 = c.find('h1')
+            if h1:
+                title = h1.get_text().strip()
+                break
+        
+        # Get copyright
+        copyright = ""
+        p_tags = soup.find_all('p')
+        for p in p_tags:
+            text = p.get_text()
+            if 'Copyright' in text:
+                copyright = text.replace('Copyright ', '').strip()
+                break
+        
+        return jsonify({
+            'date': datetime.now().strftime('%Y-%m-%d'),
+            'title': title or 'Astronomy Picture of the Day',
+            'url': image_url or '',
+            'explanation': explanation,
+            'copyright': copyright,
+            'media_type': 'image'
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 # ======================
 # DISCORD BOT COMMANDS
 # ======================
@@ -224,8 +285,7 @@ async def on_reaction_add(reaction, user):
 
 @bot.command(name='apod')
 async def apod_command(ctx):
-    NASA_API_KEY = os.getenv('NASA_API_KEY', 'DEMO_KEY')
-    url = f"https://api.nasa.gov/planetary/apod?api_key={NASA_API_KEY}"
+    url = "http://127.0.0.1:2000/apod"
 
     response = requests.get(url)
     if response.status_code == 200:
