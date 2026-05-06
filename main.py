@@ -224,7 +224,8 @@ async def on_reaction_add(reaction, user):
 
 @bot.command(name='apod')
 async def apod_command(ctx):
-    url = "https://apod.altaran.us/v1/apod/"
+    NASA_API_KEY = os.getenv('NASA_API_KEY', 'DEMO_KEY')
+    url = f"https://api.nasa.gov/planetary/apod?api_key={NASA_API_KEY}"
 
     response = requests.get(url)
     if response.status_code == 200:
@@ -284,7 +285,7 @@ async def bot_help_command(ctx):
 # ======================
 
 def run_flask():
-    app.run(debug=False, host='127.0.0.1', port=5000)
+    app.run(debug=False, host='0.0.0.0', port=2000)
 
 def run_discord():
     bot.run(DISCORD_TOKEN)

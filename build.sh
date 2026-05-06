@@ -9,4 +9,4 @@ docker build -t spacebot_combined .
 docker volume create spacebot_combined
 
 # Run the Docker container, using the volume for storage
-docker run --restart=unless-stopped -d --name spacebot_combined -v spacebot_combined:/app/data spacebot_combined
+docker run --restart=unless-stopped -d -p 2000:2000 --name spacebot_combined -v spacebot_combined:/app/data spacebot_combined
