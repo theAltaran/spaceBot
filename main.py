@@ -162,17 +162,21 @@ def apod_endpoint():
         else:
             image_url = None
         
-        # Get the explanation - it's in the paragraph after <b> Explanation:</b>
-        explanation = ""
+        # Get the explanation - it's in multiple paragraphs after <b> Explanation:</b>
+        explanation_parts = []
         b_tags = soup.find_all('b')
         for b in b_tags:
             if b.get_text().strip().startswith('Explanation:'):
-                # Get the next sibling (paragraph) that contains the explanation
+                # Get all sibling paragraphs that contain the explanation
                 for sibling in b.next_siblings:
-                    if sibling.name == 'p' and sibling.get_text().strip():
-                        explanation = sibling.get_text().strip()
+                    if sibling.name == 'p':
+                        text = sibling.get_text().strip()
+                        if text:
+                            explanation_parts.append(text)
+                    elif sibling.name is None:  # navigation link, stop collecting
                         break
                 break
+        explanation = ' '.join(explanation_parts)
         
         # Get the title (date)
         title = ""
