@@ -335,9 +335,10 @@ async def apod_command(ctx):
         data = response.json()
         image_url = data.get('url')
         explanation = data.get('explanation')
+        title = data.get('title', 'Astronomy Picture of the Day')
 
         if image_url:
-            await ctx.send("Astronomy Picture of the Day")
+            await ctx.send(title)
             message = await ctx.send(image_url)
 
             await message.add_reaction('🚀')
