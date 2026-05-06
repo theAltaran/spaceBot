@@ -56,7 +56,22 @@ def save_message_ids(message_ids):
 # FLASK API FUNCTIONS
 # ======================
 
-def get_upcoming_launches():
+def get_upcoming_launches(force_refresh=False):
+    """Get upcoming launches, using cache if available and fresh enough"""
+    file_path = '/app/data/upcoming_launches.json'
+    
+    # Check if we have cached data that's less than 1 hour old
+    if not force_refresh:
+        try:
+            if os.path.exists(file_path):
+                file_mtime = datetime.fromtimestamp(os.path.getmtime(file_path))
+                if datetime.now() - file_mtime < timedelta(hours=1):
+                    with open(file_path, 'r') as json_file:
+                        return json.load(json_file)
+        except:
+            pass
+    
+    # Fetch fresh data from the API
     response = requests.get('https://ll.thespacedevs.com/2.2.0/launch/upcoming/')
     if response.status_code == 200:
         data = response.json()
@@ -69,6 +84,8 @@ def get_upcoming_launches():
             window_start_utc = datetime.fromisoformat(launch['window_start'].replace("Z", "+00:00")).replace(tzinfo=pytz.utc)
             launch['window_start'] = window_start_utc.astimezone(est).isoformat()
 
+        # Save to cache
+        save_upcoming_launches_to_json(upcoming_launches)
         print("Upcoming launches data fetched from the API.")
         return upcoming_launches
     return []
@@ -113,9 +130,21 @@ def upcoming_launches_endpoint():
 
 @app.route('/apod', methods=['GET'])
 def apod_endpoint():
-    """Internal APOD endpoint - fetches directly from NASA's APOD website"""
+    """Internal APOD endpoint - fetches directly from NASA's APOD website with caching"""
     from bs4 import BeautifulSoup
-    import re
+    
+    apod_file = '/app/data/apod_cache.json'
+    
+    # Check cache first (APOD only changes once per day, so cache for 1 hour minimum)
+    try:
+        if os.path.exists(apod_file):
+            file_mtime = datetime.fromtimestamp(os.path.getmtime(apod_file))
+            # Only use cache if it's from today OR less than 1 hour old
+            if datetime.now().date() == file_mtime.date() or datetime.now() - file_mtime < timedelta(hours=1):
+                with open(apod_file, 'r') as f:
+                    return jsonify(json.load(f))
+    except:
+        pass
     
     try:
         # Fetch the APOD page directly
@@ -131,8 +160,6 @@ def apod_endpoint():
         if img_tag:
             image_url = 'https://apod.nasa.gov/apod/' + img_tag.get('src', '')
         else:
-            # Maybe it's a video
-            video_tag = soup.find('iframe')
             image_url = None
         
         # Get the explanation - it's in the <b> tag after the image
@@ -161,14 +188,20 @@ def apod_endpoint():
                 copyright = text.replace('Copyright ', '').strip()
                 break
         
-        return jsonify({
+        result = {
             'date': datetime.now().strftime('%Y-%m-%d'),
             'title': title or 'Astronomy Picture of the Day',
             'url': image_url or '',
             'explanation': explanation,
             'copyright': copyright,
             'media_type': 'image'
-        })
+        }
+        
+        # Save to cache
+        with open(apod_file, 'w') as f:
+            json.dump(result, f)
+        
+        return jsonify(result)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
