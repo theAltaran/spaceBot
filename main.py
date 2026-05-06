@@ -236,46 +236,51 @@ async def sync_upcoming_launches():
         upcoming_launches = []
 
 @bot.command(name='next')
-async def next_launch(ctx):
+async def next_launch(ctx, count: int = None):
     await sync_upcoming_launches()
     if upcoming_launches:
-        # Get the next two launches
-        next_launches = upcoming_launches[:2]
+        # Determine how many launches to show
+        if count is None:
+            count = 2
+        else:
+            count = min(max(1, count), 10)  # Clamp between 1-10
+        
+        next_launches = upcoming_launches[:count]
         message = ""
 
-        for launch in next_launches:
+        for i, launch in enumerate(next_launches):
             provider = launch['launch_service_provider']['name']
             name = launch['name']
             window_start = launch['window_start']
 
             # Convert the time to EST
             utc_time = datetime.fromisoformat(window_start.replace("Z", "+00:00"))
-            eastern_time = utc_time - timedelta(hours=0)  # Adjust for EST (UTC-4)
+            eastern_time = utc_time  # Already converted
 
-            # Format the time in the desired format and add timezone indication
-            formatted_time = eastern_time.strftime("%m-%d-%Y %I:%M %p").lstrip('0') + " EST"
-
-            # Calculate the time difference in hours and minutes
+            # Calculate time until launch
             current_time = datetime.now(timezone.utc)
             time_until_launch = eastern_time - current_time
             hours, remainder = divmod(time_until_launch.seconds, 3600)
             minutes = remainder // 60
 
-            # If the time until launch is more than 24 hours, adjust the hours to include days
             if time_until_launch.days > 0:
                 days = time_until_launch.days
                 hours += days * 24
 
-            # Create a string with the estimated time to launch
-            estimated_time = f"{hours} hours and {minutes} minutes"
+            estimated_time = f"{hours}h {minutes}m"
 
-            # Extract date and time components
+            # Format date and time now since both branches use them
             date = eastern_time.strftime("%m-%d")
-            time = eastern_time.strftime("%I:%M %p").lstrip('0')  # Remove leading zero from hour
+            time = eastern_time.strftime("%I:%M %p").lstrip('0')
 
-            # Add launch information to the message, including estimated time to launch
-            message += f"Launch Provider: {provider}\nName: {name}\nWindow Start: {date} - {time} EST\n"
-            message += f"TTL: {estimated_time}\n\n"
+            if count <= 2:
+                # Full format for 1-2 launches
+                formatted_time = eastern_time.strftime("%m-%d-%Y %I:%M %p").lstrip('0') + " EST"
+                message += f"Launch Provider: {provider}\nName: {name}\nWindow Start: {date} - {time} EST\n"
+                message += f"TTL: {estimated_time}\n\n"
+            else:
+                # Compact format for 3+ launches
+                message += f"[{i+1}] {provider} | {name} | T-{estimated_time}\n"
 
         response = await ctx.send(message)
         await response.add_reaction('🚀')
