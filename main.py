@@ -166,14 +166,16 @@ def apod_endpoint():
         explanation_parts = []
         b_tags = soup.find_all('b')
         for b in b_tags:
-            if b.get_text().strip().startswith('Explanation:'):
+            if 'Explanation' in b.get_text():
                 # Get all sibling paragraphs that contain the explanation
                 for sibling in b.next_siblings:
                     if sibling.name == 'p':
                         text = sibling.get_text().strip()
-                        if text:
+                        if text and 'Tomorrow' not in text:
                             explanation_parts.append(text)
-                    elif sibling.name is None:  # navigation link, stop collecting
+                        else:
+                            break
+                    elif sibling.name and 'center' in str(sibling.name):
                         break
                 break
         explanation = ' '.join(explanation_parts)
