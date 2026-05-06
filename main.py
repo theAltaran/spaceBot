@@ -173,7 +173,7 @@ def apod_endpoint():
                 break
         
         # Get explanation using regex - find everything between "Explanation:" and "Tomorrow's picture"
-        explanation_match = re.search(r'Explanation:.*?Explanation:</b>\s*(.*?)</p>.*?<p>\s*<center>', html, re.DOTALL)
+        explanation_match = re.search(r'Explanation:.*?</b>(.*?)Tomorrow', html, re.DOTALL)
         if explanation_match:
             explanation = explanation_match.group(1)
             # Clean up HTML tags
