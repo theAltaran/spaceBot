@@ -5,8 +5,8 @@ docker rm spacebot_combined
 # Build the Docker image
 docker build -t spacebot_combined .
 
-# Create the Docker volume if it doesn't exist
-docker volume create spacebot_combined
+# Ensure the data directory exists
+mkdir -p /data/dockerData/spaceBot
 
-# Run the Docker container, using the volume for storage
-docker run --restart=unless-stopped -d -p 2000:2000 --name spacebot_combined -v spacebot_combined:/app/data spacebot_combined
+# Run the Docker container, mounting the host directory for storage
+docker run --restart=unless-stopped -d -p 2000:2000 --name spacebot_combined -v /data/dockerData/spaceBot:/data/dockerData/spaceBot spacebot_combined

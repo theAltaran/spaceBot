@@ -42,14 +42,14 @@ DISCORD_CHANNEL_ID_2 = os.getenv('DISCORD_CHANNEL_ID_2')
 # Function to load stored message IDs from the JSON file
 def load_message_ids():
     try:
-        with open('/app/data/message_ids.json', 'r') as file:
+        with open('/data/dockerData/spaceBot/message_ids.json', 'r') as file:
             return json.load(file)
     except FileNotFoundError:
         return {}
 
 # Function to save message IDs to the JSON file
 def save_message_ids(message_ids):
-    with open('/app/data/message_ids.json', 'w') as file:
+    with open('/data/dockerData/spaceBot/message_ids.json', 'w') as file:
         json.dump(message_ids, file)
 
 # ======================
@@ -58,7 +58,7 @@ def save_message_ids(message_ids):
 
 def get_upcoming_launches(force_refresh=False):
     """Get upcoming launches, using cache if available and fresh enough"""
-    file_path = '/app/data/upcoming_launches.json'
+    file_path = '/data/dockerData/spaceBot/upcoming_launches.json'
     
     # Check if we have cached data that's less than 1 hour old
     if not force_refresh:
@@ -91,7 +91,7 @@ def get_upcoming_launches(force_refresh=False):
     return []
 
 def save_upcoming_launches_to_json(data):
-    with open('/app/data/upcoming_launches.json', 'w') as json_file:
+    with open('/data/dockerData/spaceBot/upcoming_launches.json', 'w') as json_file:
         json.dump(data, json_file, indent=4)
     print("Upcoming launches data has been updated.")
 
@@ -104,7 +104,7 @@ def initialize_data():
 
     current_time = datetime.now(pytz.utc)
     if last_launches_update_time is not None and (current_time - last_launches_update_time <= timedelta(minutes=5)):
-        with open('/app/data/upcoming_launches.json', 'r') as json_file:
+        with open('/data/dockerData/spaceBot/upcoming_launches.json', 'r') as json_file:
             upcoming_launches_data = json.load(json_file)
     else:
         upcoming_launches_data = get_upcoming_launches()
@@ -133,7 +133,7 @@ def apod_endpoint():
     """Internal APOD endpoint - fetches directly from NASA's APOD website with caching"""
     from bs4 import BeautifulSoup
     
-    apod_file = '/app/data/apod_cache.json'
+    apod_file = '/data/dockerData/spaceBot/apod_cache.json'
     
     # Check cache first (APOD only changes once per day, so cache for 1 hour minimum)
     try:
