@@ -132,6 +132,7 @@ def upcoming_launches_endpoint():
 def apod_endpoint():
     """Internal APOD endpoint - fetches directly from NASA's APOD website with caching"""
     from bs4 import BeautifulSoup
+    import re
     
     apod_file = '/data/dockerData/spaceBot/apod_cache.json'
     
@@ -162,40 +163,39 @@ def apod_endpoint():
         else:
             image_url = None
         
-        # Get the explanation - it's in multiple paragraphs after <b> Explanation:</b>
-        explanation_parts = []
+        # Get title (from <b> tag inside center)
+        title = ""
         b_tags = soup.find_all('b')
         for b in b_tags:
-            if 'Explanation' in b.get_text():
-                # Get all sibling paragraphs that contain the explanation
-                for sibling in b.next_siblings:
-                    if sibling.name == 'p':
-                        text = sibling.get_text().strip()
-                        if text and 'Tomorrow' not in text:
-                            explanation_parts.append(text)
-                        else:
-                            break
-                    elif sibling.name and 'center' in str(sibling.name):
-                        break
+            text = b.get_text().strip()
+            if text and 'Explanation' not in text and 'Copyright' not in text and 'Image Credit' not in text and 'Text:' not in text:
+                title = text
                 break
-        explanation = ' '.join(explanation_parts)
         
-        # Get the title (date)
-        title = ""
-        center_tags = soup.find_all('center')
-        for c in center_tags:
-            h1 = c.find('h1')
-            if h1:
-                title = h1.get_text().strip()
-                break
+        # Get explanation using regex - find everything between "Explanation:" and "Tomorrow's picture"
+        explanation_match = re.search(r'Explanation:.*?Explanation:</b>\s*(.*?)</p>.*?<p>\s*<center>', html, re.DOTALL)
+        if explanation_match:
+            explanation = explanation_match.group(1)
+            # Clean up HTML tags
+            explanation = re.sub(r'<[^>]+>', '', explanation)
+            explanation = ' '.join(explanation.split())
+        else:
+            explanation = ""
         
         # Get copyright
         copyright = ""
-        p_tags = soup.find_all('p')
-        for p in p_tags:
-            text = p.get_text()
-            if 'Copyright' in text:
-                copyright = text.replace('Copyright ', '').strip()
+        for b in b_tags:
+            text = b.get_text().strip()
+            if 'Copyright' in text or 'Image Credit' in text:
+                # Get next sibling text
+                for sib in b.next_siblings:
+                    if sib.name == 'br':
+                        continue
+                    if hasattr(sib, 'get_text'):
+                        txt = sib.get_text().strip()
+                        if txt:
+                            copyright = txt
+                            break
                 break
         
         result = {
