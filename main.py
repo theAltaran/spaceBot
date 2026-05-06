@@ -162,12 +162,16 @@ def apod_endpoint():
         else:
             image_url = None
         
-        # Get the explanation - it's in the <b> tag after the image
+        # Get the explanation - it's in the paragraph after <b> Explanation:</b>
         explanation = ""
         b_tags = soup.find_all('b')
         for b in b_tags:
-            if b.get_text().strip().startswith(' Explanation:'):
-                explanation = b.get_text().replace(' Explanation:', '').strip()
+            if b.get_text().strip().startswith('Explanation:'):
+                # Get the next sibling (paragraph) that contains the explanation
+                for sibling in b.next_siblings:
+                    if sibling.name == 'p' and sibling.get_text().strip():
+                        explanation = sibling.get_text().strip()
+                        break
                 break
         
         # Get the title (date)
